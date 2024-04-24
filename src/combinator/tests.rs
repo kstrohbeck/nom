@@ -282,3 +282,22 @@ fn fail_test() {
     Err(Err::Error((b, ErrorKind::Fail)))
   );
 }
+
+#[test]
+fn value_test() {
+  use crate::character::char;
+
+  assert_eq!(value(123, char::<_, ()>('a')).parse("abc"), Ok(("bc", 123)));
+  assert_eq!(
+    value(123, char::<_, ()>('a')).parse(""),
+    Err(Err::Incomplete(Needed::new(1)))
+  );
+  assert_eq!(
+    value(123, fail::<_, char, _>()).parse("234"),
+    Err(Err::Error(("234", ErrorKind::Fail)))
+  );
+  assert_eq!(
+    value(123, cut(fail::<_, char, _>())).parse("234"),
+    Err(Err::Failure(("234", ErrorKind::Fail)))
+  );
+}

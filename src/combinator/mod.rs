@@ -557,14 +557,33 @@ where
 /// assert_eq!(parser.parse("123abcd;"), Err(Err::Error(("123abcd;", ErrorKind::Alpha))));
 /// # }
 /// ```
-pub fn value<I, O1: Clone, E: ParseError<I>, F>(
-  val: O1,
+pub fn value<T, F>(val: T, parser: F) -> Value<T, F> {
+  Value { val, parser }
+}
+
+/// Parser implementation of [value]
+pub struct Value<T, F> {
+  val: T,
   parser: F,
-) -> impl Parser<I, Output = O1, Error = E>
+}
+
+impl<I, T, F> Parser<I> for Value<T, F>
 where
-  F: Parser<I, Error = E>,
+  T: Clone,
+  F: Parser<I>,
 {
-  parser.map(move |_| val.clone())
+  type Output = T;
+  type Error = <F as Parser<I>>::Error;
+
+  fn process<OM: OutputMode>(&mut self, input: I) -> PResult<OM, I, Self::Output, Self::Error> {
+    match self
+      .parser
+      .process::<OutputM<Check, OM::Error, OM::Incomplete>>(input)
+    {
+      Ok((i, ())) => Ok((i, OM::Output::bind(|| self.val.clone()))),
+      Err(e) => Err(e),
+    }
+  }
 }
 
 /// Succeeds if the child parser returns an error.
